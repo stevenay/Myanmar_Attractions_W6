@@ -64,8 +64,8 @@ public class AttractionModel {
     }
 
     public void onEventMainThread(DataEvent.AttractionDataLoadedEvent event) {
-        String extra = event.getExtraMessage();
-        Toast.makeText(MyanmarAttractionsApp.getContext(), "Extra : " + extra, Toast.LENGTH_SHORT).show();
+//        String extra = event.getExtraMessage();
+//        Toast.makeText(MyanmarAttractionsApp.getContext(), "Extra : " + extra, Toast.LENGTH_SHORT).show();
 
         // Get the data from the Event
         this.mAttractionVOList = event.getAttractionList();

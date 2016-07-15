@@ -13,6 +13,7 @@ import android.support.v4.content.Loader;
 import android.support.v4.util.Pair;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -25,6 +26,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -32,12 +34,15 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import de.greenrobot.event.EventBus;
 import me.naylinaung.myanmar_attractions_w6.MyanmarAttractionsApp;
 import me.naylinaung.myanmar_attractions_w6.R;
 import me.naylinaung.myanmar_attractions_w6.adapters.AttractionAdapter;
 import me.naylinaung.myanmar_attractions_w6.data.models.AttractionModel;
 import me.naylinaung.myanmar_attractions_w6.data.persistence.AttractionsContract;
 import me.naylinaung.myanmar_attractions_w6.data.vos.AttractionVO;
+import me.naylinaung.myanmar_attractions_w6.data.vos.UserVO;
+import me.naylinaung.myanmar_attractions_w6.events.DataEvent;
 import me.naylinaung.myanmar_attractions_w6.utils.MyanmarAttractionsConstants;
 import me.naylinaung.myanmar_attractions_w6.views.holders.AttractionViewHolder;
 
@@ -58,7 +63,13 @@ public class HomeActivity extends AppCompatActivity
     @BindView(R.id.navigation_view)
     NavigationView navigationView;
 
+    private View header;
+    private Button btnNavToLogin;
+    private Button btnNavToRegister;
+    private Button btnLogout;
+
     private AttractionAdapter mAttractionAdapter;
+    private String mLoggedInUserEmail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,25 +88,45 @@ public class HomeActivity extends AppCompatActivity
 
         Menu leftMenu = navigationView.getMenu();
         navigationView.setNavigationItemSelectedListener(this);
-        View header = navigationView.getHeaderView(0);
+        header = navigationView.getHeaderView(0);
 
-        Button btnNavToLogin = (Button) header.findViewById(R.id.btn_nav_to_login);
-        btnNavToLogin.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = AuthenticateActivity.newIntent(AuthenticateActivity.ScreenType.LOGIN_SCREEN);
-                startActivity(intent);
-            }
-        });
+        btnNavToLogin = (Button) header.findViewById(R.id.btn_nav_to_login);
+        if (btnNavToLogin != null)
+            btnNavToLogin.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    final Intent intent = AuthenticateActivity.newIntent(AuthenticateActivity.ScreenType.LOGIN_SCREEN);
+                    drawerLayout.closeDrawers();
 
-        Button btnNavToRegister = (Button) header.findViewById(R.id.btn_nav_to_register);
-        btnNavToRegister.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = AuthenticateActivity.newIntent(AuthenticateActivity.ScreenType.REGISTER_SCREEN);
-                startActivity(intent);
-            }
-        });
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            startActivity(intent);
+                        }
+                    }, 100);
+                }
+            });
+
+        btnNavToRegister = (Button) header.findViewById(R.id.btn_nav_to_register);
+        if (btnNavToRegister != null)
+            btnNavToRegister.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent intent = AuthenticateActivity.newIntent(AuthenticateActivity.ScreenType.REGISTER_SCREEN);
+                    drawerLayout.closeDrawers();
+                    startActivity(intent);
+                }
+            });
+
+        btnLogout = (Button) header.findViewById(R.id.btn_nav_to_logout);
+        if (btnLogout != null)
+            btnLogout.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    UserVO.deleteUser(mLoggedInUserEmail);
+                    bindHeaderData(null);
+                }
+            });
 
         List<AttractionVO> attractionList = AttractionModel.getInstance().getAttractionList();
         mAttractionAdapter = new AttractionAdapter(attractionList, this);
@@ -105,6 +136,7 @@ public class HomeActivity extends AppCompatActivity
         rvAttractions.setLayoutManager(new GridLayoutManager(getApplicationContext(), gridColumnSpanCount));
 
         getSupportLoaderManager().initLoader(MyanmarAttractionsConstants.ATTRACTION_LIST_LOADER, null, this);
+        getSupportLoaderManager().initLoader(MyanmarAttractionsConstants.USER_EXISTED_LOADER, null, this);
     }
 
     @Override
@@ -127,31 +159,46 @@ public class HomeActivity extends AppCompatActivity
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        return new CursorLoader(this,
-                AttractionsContract.AttractionEntry.CONTENT_URI,
-                null,
-                null,
-                null,
-                null);
+        switch (id) {
+            case MyanmarAttractionsConstants.ATTRACTION_LIST_LOADER:
+                return new CursorLoader(this,
+                        AttractionsContract.AttractionEntry.CONTENT_URI, null, null, null, null);
+            case MyanmarAttractionsConstants.USER_EXISTED_LOADER:
+                return new CursorLoader(this,
+                        AttractionsContract.UserEntry.CONTENT_URI, null, null, null, null);
+            default:
+                throw new UnsupportedOperationException("Unsupported Loader");
+        }
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        List<AttractionVO> attractionList = new ArrayList<>();
-        if (data != null && data.moveToFirst()) {
-            do {
-                AttractionVO attraction = AttractionVO.parseFromCursor(data);
-                attraction.setImages(AttractionVO.loadAttractionImagesByTitle(attraction.getTitle()));
-                attractionList.add(attraction);
-            } while (data.moveToNext());
-        }
+        switch (loader.getId()) {
+            case MyanmarAttractionsConstants.ATTRACTION_LIST_LOADER:
+                List<AttractionVO> attractionList = new ArrayList<>();
+                if (data != null && data.moveToFirst()) {
+                    do {
+                        AttractionVO attraction = AttractionVO.parseFromCursor(data);
+                        attraction.setImages(AttractionVO.loadAttractionImagesByTitle(attraction.getTitle()));
+                        attractionList.add(attraction);
+                    } while (data.moveToNext());
+                }
 
-        if (data != null) {
-            data.close();
-        }
+                Log.d(MyanmarAttractionsApp.TAG, "Retrieved attractions : " + attractionList.size());
+                mAttractionAdapter.setNewData(attractionList);
+                break;
 
-        Log.d(MyanmarAttractionsApp.TAG, "Retrieved attractions : " + attractionList.size());
-        mAttractionAdapter.setNewData(attractionList);
+            case MyanmarAttractionsConstants.USER_EXISTED_LOADER:
+                if (data != null && data.moveToFirst()) {
+                    UserVO user = UserVO.parseFromCursor(data);
+                    mLoggedInUserEmail = user.getEmail();
+                    bindHeaderData(user);
+                }
+                break;
+
+            default:
+                throw new UnsupportedOperationException("Unsupported Loader");
+        }
     }
 
     @Override
@@ -159,6 +206,34 @@ public class HomeActivity extends AppCompatActivity
 
     }
 
+    private void bindHeaderData(UserVO userVO) {
+        TextView tvEmail = (TextView) header.findViewById(R.id.tv_email);
+        TextView tvUserName = (TextView) header.findViewById(R.id.tv_username);
+        ImageView ivAvatar = (ImageView) header.findViewById(R.id.iv_avatar);
+
+        if (userVO == null) {
+            tvEmail.setText("");
+            tvUserName.setText("");
+
+            ivAvatar.setVisibility(View.INVISIBLE);
+
+            btnNavToLogin.setVisibility(View.VISIBLE);
+            if (btnNavToRegister != null) btnNavToRegister.setVisibility(View.VISIBLE);
+            btnLogout.setVisibility(View.GONE);
+        } else {
+            tvEmail.setText(userVO.getEmail());
+            tvUserName.setText(userVO.getName());
+
+            ivAvatar.setVisibility(View.VISIBLE);
+            ivAvatar.setImageResource(R.mipmap.ic_launcher);
+
+            btnNavToLogin.setVisibility(View.GONE);
+            if (btnNavToRegister != null) btnNavToRegister.setVisibility(View.GONE);
+            btnLogout.setVisibility(View.VISIBLE);
+        }
+    }
+
+    //region Menu and Navigation
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -200,5 +275,5 @@ public class HomeActivity extends AppCompatActivity
 
         return true;
     }
-
+    //endregion
 }

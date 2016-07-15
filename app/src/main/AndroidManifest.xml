@@ -29,6 +29,16 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".activities.HomeActivity"/>
         </activity>
+        <activity
+            android:name=".activities.AuthenticateActivity"
+            android:label="@string/title_activity_authenticate"
+            android:parentActivityName=".activities.HomeActivity"
+            android:windowSoftInputMode="stateHidden"
+            android:theme="@style/AppTheme">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".activities.HomeActivity"/>
+        </activity>
 
         <provider
             android:name=".data.persistence.AttractionProvider"
@@ -36,11 +46,6 @@
             android:exported="false"
             android:syncable="true"/>
 
-        <activity
-            android:name=".activities.AuthenticateActivity"
-            android:label="@string/title_activity_authenticate"
-            android:theme="@style/AppTheme">
-        </activity>
     </application>
 
 </manifest>

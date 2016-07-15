@@ -26,35 +26,45 @@
               android:theme="@style/ThemeOverlay.AppCompat.Dark">
 
     <ImageView
-        android:id="@+id/avatar"
+        android:id="@+id/iv_avatar"
         android:layout_width="64dp"
         android:layout_height="64dp"
         android:layout_margin="@dimen/margin_medium_2"
         android:elevation="4dp"
-        android:src="@mipmap/ic_launcher"/>
+        android:visibility="invisible"/>
 
     <TextView
+        android:id="@+id/tv_username"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="@dimen/margin_medium_2"
         android:layout_marginStart="@dimen/margin_medium_2"
-        android:text="Username"
         android:textAppearance="@style/TextAppearance.AppCompat.Body2"/>
 
     <TextView
-        android:id="@+id/email"
+        android:id="@+id/tv_email"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/margin_medium_2"
         android:layout_marginLeft="@dimen/margin_medium_2"
         android:layout_marginStart="@dimen/margin_medium_2"
-        android:text="username@mymail.com"
         android:textAppearance="@style/TextAppearance.AppCompat.Body1"/>
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_nav_to_logout"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginLeft="@dimen/margin_small"
+            android:layout_marginStart="@dimen/margin_small"
+            style="?android:attr/button"
+            android:textAllCaps="false"
+            android:visibility="gone"
+            android:text="Log Out"/>
 
         <Button
             android:id="@+id/btn_nav_to_login"
