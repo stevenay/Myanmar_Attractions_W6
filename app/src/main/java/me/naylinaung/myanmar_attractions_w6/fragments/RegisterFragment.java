@@ -3,12 +3,14 @@ package me.naylinaung.myanmar_attractions_w6.fragments;
 
 import android.content.DialogInterface;
 import android.database.Cursor;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AlertDialog;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +18,12 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.Toast;
+
+import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
+
+import java.text.DecimalFormat;
+import java.util.Calendar;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -34,7 +42,8 @@ import me.naylinaung.myanmar_attractions_w6.utils.MyanmarAttractionsConstants;
  * A simple {@link Fragment} subclass.
  */
 public class RegisterFragment extends Fragment
-        implements LoaderManager.LoaderCallbacks<Cursor> {
+        implements LoaderManager.LoaderCallbacks<Cursor>,
+        DatePickerDialog.OnDateSetListener {
 
     //region Members Variable Declaration
     @BindView(R.id.btn_register)
@@ -57,8 +66,7 @@ public class RegisterFragment extends Fragment
     //endregion
 
     //region Factory Method
-    public static RegisterFragment newInstance()
-    {
+    public static RegisterFragment newInstance() {
         return new RegisterFragment();
     }
     //endregion
@@ -70,6 +78,30 @@ public class RegisterFragment extends Fragment
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_register, container, false);
         ButterKnife.bind(this, v);
+
+        if (Build.VERSION.SDK_INT >= 11) {
+            etDateofBirth.setRawInputType(InputType.TYPE_CLASS_TEXT);
+            etDateofBirth.setTextIsSelectable(true);
+        } else {
+            etDateofBirth.setRawInputType(InputType.TYPE_NULL);
+            etDateofBirth.setFocusable(true);
+        }
+
+        etDateofBirth.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean hasFocus) {
+                if (hasFocus) {
+                    showThirdPartyDatePicker();
+                }
+            }
+        });
+
+        etDateofBirth.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showThirdPartyDatePicker();
+            }
+        });
 
         return v;
     }
@@ -171,6 +203,23 @@ public class RegisterFragment extends Fragment
         }
 
         return true;
+    }
+
+    private void showThirdPartyDatePicker() {
+        Calendar now = Calendar.getInstance();
+        DatePickerDialog thirdPartyDatePicker = DatePickerDialog.newInstance(
+                this,
+                now.get(Calendar.YEAR),
+                now.get(Calendar.MONTH),
+                now.get(Calendar.DAY_OF_MONTH)
+        );
+        thirdPartyDatePicker.show(getActivity().getFragmentManager(), "ThirdPartyDatePicker");
+    }
+
+    @Override
+    public void onDateSet(DatePickerDialog view, int year, int monthOfYear, int dayOfMonth) {
+        DecimalFormat df = new DecimalFormat("00");
+        this.etDateofBirth.setText(year + "-" + df.format(monthOfYear) + "-" + df.format(dayOfMonth));
     }
     //endregion
 
